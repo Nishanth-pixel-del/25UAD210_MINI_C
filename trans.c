@@ -19,6 +19,7 @@ void updateRecord(FILE *fPtr);
 void newRecord(FILE *fPtr);
 void deleteRecord(FILE *fPtr);
 void listAllAccounts(FILE *readPtr);
+void transferFunds(FILE *fPtr);
 
 int main(int argc, char *argv[])
 {
@@ -44,7 +45,7 @@ int main(int argc, char *argv[])
     }
 
     // enable user to specify action
-    while ((choice = enterChoice()) != 6)
+    while ((choice = enterChoice()) != 7)
     {
         switch (choice)
         {
@@ -67,6 +68,10 @@ int main(int argc, char *argv[])
         // list all accounts
         case 5:
             listAllAccounts(cfPtr);
+            break;
+        // transfer funds
+        case 6:
+            transferFunds(cfPtr);
             break;
         // display if user does not select valid choice
         default:
@@ -252,6 +257,80 @@ void listAllAccounts(FILE *readPtr)
     }     // end while
 } // end function listAllAccounts
 
+// transfer funds between two accounts
+void transferFunds(FILE *fPtr)
+{
+    unsigned int srcAccount;
+    unsigned int destAccount;
+    double amount;
+    struct clientData srcClient = {0, "", "", 0.0};
+    struct clientData destClient = {0, "", "", 0.0};
+
+    // get source account
+    printf("%s", "Enter source account ( 1 - 100 ): ");
+    while (scanf("%u", &srcAccount) != 1 || srcAccount < 1 || srcAccount > 100) {
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF); // clear buffer
+        printf("Invalid input. Enter source account ( 1 - 100 ): ");
+    }
+
+    fseek(fPtr, (srcAccount - 1) * sizeof(struct clientData), SEEK_SET);
+    fread(&srcClient, sizeof(struct clientData), 1, fPtr);
+
+    if (srcClient.acctNum == 0) {
+        printf("Source account #%u has no information.\n", srcAccount);
+        return;
+    }
+
+    // get destination account
+    printf("%s", "Enter destination account ( 1 - 100 ): ");
+    while (scanf("%u", &destAccount) != 1 || destAccount < 1 || destAccount > 100) {
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF); // clear buffer
+        printf("Invalid input. Enter destination account ( 1 - 100 ): ");
+    }
+
+    if (srcAccount == destAccount) {
+        printf("Source and destination accounts must be different.\n");
+        return;
+    }
+
+    fseek(fPtr, (destAccount - 1) * sizeof(struct clientData), SEEK_SET);
+    fread(&destClient, sizeof(struct clientData), 1, fPtr);
+
+    if (destClient.acctNum == 0) {
+        printf("Destination account #%u has no information.\n", destAccount);
+        return;
+    }
+
+    // request transfer amount
+    printf("%s", "Enter transfer amount: ");
+    while (scanf("%lf", &amount) != 1 || amount <= 0) {
+        int c;
+        while ((c = getchar()) != '\n' && c != EOF); // clear buffer
+        printf("Invalid input. Enter transfer amount (> 0): ");
+    }
+
+    if (srcClient.balance < amount) {
+        printf("Insufficient funds in source account. Current balance: %.2f\n", srcClient.balance);
+        return;
+    }
+
+    // perform transfer
+    srcClient.balance -= amount;
+    destClient.balance += amount;
+
+    // write source
+    fseek(fPtr, (srcAccount - 1) * sizeof(struct clientData), SEEK_SET);
+    fwrite(&srcClient, sizeof(struct clientData), 1, fPtr);
+
+    // write destination
+    fseek(fPtr, (destAccount - 1) * sizeof(struct clientData), SEEK_SET);
+    fwrite(&destClient, sizeof(struct clientData), 1, fPtr);
+
+    printf("Successfully transferred %.2f from account %u to account %u.\n", amount, srcAccount, destAccount);
+}
+
 // enable user to input menu choice
 unsigned int enterChoice(void)
 {
@@ -264,7 +343,8 @@ unsigned int enterChoice(void)
                  "3 - add a new account\n"
                  "4 - delete an account\n"
                  "5 - list all account information to console\n"
-                 "6 - end program\n? ");
+                 "6 - transfer funds\n"
+                 "7 - end program\n? ");
 
     while (scanf("%u", &menuChoice) != 1) {
         int c;
