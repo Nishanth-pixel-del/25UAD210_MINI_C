@@ -240,8 +240,10 @@ void newRecord(FILE *fPtr)
 void listAllAccounts(FILE *readPtr)
 {
     struct clientData client = {0, "", "", 0.0};
+    double totalBalance = 0.0;
 
     printf("\n%-6s%-16s%-11s%10s\n", "Acct", "Last Name", "First Name", "Balance");
+    printf("---------------------------------------------\n");
 
     rewind(readPtr); // sets pointer to beginning of file
 
@@ -252,8 +254,12 @@ void listAllAccounts(FILE *readPtr)
         if (client.acctNum != 0)
         {
             printf("%-6u%-16s%-11s%10.2f\n", client.acctNum, client.lastName, client.firstName, client.balance);
+            totalBalance += client.balance;
         } // end if
     }     // end while
+
+    printf("---------------------------------------------\n");
+    printf("Total Bank Balance: %24.2f\n\n", totalBalance);
 } // end function listAllAccounts
 
 // transfer funds between two accounts
