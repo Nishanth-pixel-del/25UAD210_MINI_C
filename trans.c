@@ -337,7 +337,9 @@ unsigned int enterChoice(void)
 {
     unsigned int menuChoice; // variable to store user's choice
     // display available options
-    printf("%s", "\nEnter your choice\n"
+    printf("\n=============================================\n"
+                 "        TRANSACTION PROCESSING SYSTEM\n"
+                 "=============================================\n"
                  "1 - store a formatted text file of accounts called\n"
                  "    \"accounts.txt\" for printing\n"
                  "2 - update an account\n"
@@ -346,7 +348,9 @@ unsigned int enterChoice(void)
                  "5 - list all account information to console\n"
                  "6 - transfer funds\n"
                  "7 - search account by last name\n"
-                 "8 - end program\n? ");
+                 "8 - end program\n"
+                 "=============================================\n"
+                 "Enter your choice: ");
 
     while (scanf("%u", &menuChoice) != 1) {
         int c;
