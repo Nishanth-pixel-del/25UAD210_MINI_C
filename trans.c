@@ -20,6 +20,8 @@ void newRecord(FILE *fPtr);
 void deleteRecord(FILE *fPtr);
 void listAllAccounts(FILE *readPtr);
 void transferFunds(FILE *fPtr);
+int getRecord(FILE *fPtr, unsigned int accountNum, struct clientData *client);
+int saveRecord(FILE *fPtr, unsigned int accountNum, const struct clientData *client);
 
 int main(int argc, char *argv[])
 {
@@ -131,10 +133,9 @@ void updateRecord(FILE *fPtr)
         printf("Invalid input. Enter account to update ( 1 - 100 ): ");
     }
 
-    // move file pointer to correct record in file
-    fseek(fPtr, (account - 1) * sizeof(struct clientData), SEEK_SET);
     // read record from file
-    fread(&client, sizeof(struct clientData), 1, fPtr);
+    getRecord(fPtr, account, &client);
+
     // display error if account does not exist
     if (client.acctNum == 0)
     {
@@ -155,10 +156,8 @@ void updateRecord(FILE *fPtr)
 
         printf("%-6u%-16s%-11s%10.2f\n", client.acctNum, client.lastName, client.firstName, client.balance);
 
-        // move file pointer to correct record in file
-        fseek(fPtr, (account - 1) * sizeof(struct clientData), SEEK_SET);
         // write updated record over old record in file
-        fwrite(&client, sizeof(struct clientData), 1, fPtr);
+        saveRecord(fPtr, account, &client);
     } // end else
 } // end function updateRecord
 
@@ -177,10 +176,9 @@ void deleteRecord(FILE *fPtr)
         printf("Invalid input. Enter account number to delete ( 1 - 100 ): ");
     }
 
-    // move file pointer to correct record in file
-    fseek(fPtr, (accountNum - 1) * sizeof(struct clientData), SEEK_SET);
     // read record from file
-    fread(&client, sizeof(struct clientData), 1, fPtr);
+    getRecord(fPtr, accountNum, &client);
+
     // display error if record does not exist
     if (client.acctNum == 0)
     {
@@ -188,10 +186,8 @@ void deleteRecord(FILE *fPtr)
     } // end if
     else
     { // delete record
-        // move file pointer to correct record in file
-        fseek(fPtr, (accountNum - 1) * sizeof(struct clientData), SEEK_SET);
         // replace existing record with blank record
-        fwrite(&blankClient, sizeof(struct clientData), 1, fPtr);
+        saveRecord(fPtr, accountNum, &blankClient);
     } // end else
 } // end function deleteRecord
 
@@ -210,10 +206,9 @@ void newRecord(FILE *fPtr)
         printf("Invalid input. Enter new account number ( 1 - 100 ): ");
     }
 
-    // move file pointer to correct record in file
-    fseek(fPtr, (accountNum - 1) * sizeof(struct clientData), SEEK_SET);
     // read record from file
-    fread(&client, sizeof(struct clientData), 1, fPtr);
+    getRecord(fPtr, accountNum, &client);
+
     // display error if account already exists
     if (client.acctNum != 0)
     {
@@ -230,10 +225,8 @@ void newRecord(FILE *fPtr)
         }
 
         client.acctNum = accountNum;
-        // move file pointer to correct record in file
-        fseek(fPtr, (client.acctNum - 1) * sizeof(struct clientData), SEEK_SET);
         // insert record in file
-        fwrite(&client, sizeof(struct clientData), 1, fPtr);
+        saveRecord(fPtr, accountNum, &client);
     } // end else
 } // end function newRecord
 
@@ -274,8 +267,7 @@ void transferFunds(FILE *fPtr)
         printf("Invalid input. Enter source account ( 1 - 100 ): ");
     }
 
-    fseek(fPtr, (srcAccount - 1) * sizeof(struct clientData), SEEK_SET);
-    fread(&srcClient, sizeof(struct clientData), 1, fPtr);
+    getRecord(fPtr, srcAccount, &srcClient);
 
     if (srcClient.acctNum == 0) {
         printf("Source account #%u has no information.\n", srcAccount);
@@ -295,8 +287,7 @@ void transferFunds(FILE *fPtr)
         return;
     }
 
-    fseek(fPtr, (destAccount - 1) * sizeof(struct clientData), SEEK_SET);
-    fread(&destClient, sizeof(struct clientData), 1, fPtr);
+    getRecord(fPtr, destAccount, &destClient);
 
     if (destClient.acctNum == 0) {
         printf("Destination account #%u has no information.\n", destAccount);
@@ -321,12 +312,10 @@ void transferFunds(FILE *fPtr)
     destClient.balance += amount;
 
     // write source
-    fseek(fPtr, (srcAccount - 1) * sizeof(struct clientData), SEEK_SET);
-    fwrite(&srcClient, sizeof(struct clientData), 1, fPtr);
+    saveRecord(fPtr, srcAccount, &srcClient);
 
     // write destination
-    fseek(fPtr, (destAccount - 1) * sizeof(struct clientData), SEEK_SET);
-    fwrite(&destClient, sizeof(struct clientData), 1, fPtr);
+    saveRecord(fPtr, destAccount, &destClient);
 
     printf("Successfully transferred %.2f from account %u to account %u.\n", amount, srcAccount, destAccount);
 }
@@ -353,3 +342,17 @@ unsigned int enterChoice(void)
     }
     return menuChoice;
 } // end function enterChoice
+
+// helper function to read a record
+int getRecord(FILE *fPtr, unsigned int accountNum, struct clientData *client)
+{
+    fseek(fPtr, (accountNum - 1) * sizeof(struct clientData), SEEK_SET);
+    return fread(client, sizeof(struct clientData), 1, fPtr);
+}
+
+// helper function to save a record
+int saveRecord(FILE *fPtr, unsigned int accountNum, const struct clientData *client)
+{
+    fseek(fPtr, (accountNum - 1) * sizeof(struct clientData), SEEK_SET);
+    return fwrite(client, sizeof(struct clientData), 1, fPtr);
+}
