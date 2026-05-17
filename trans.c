@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <time.h>
 // clientData structure definition
 struct clientData
 {
@@ -24,6 +25,7 @@ void transferFunds(FILE *fPtr);
 void searchAccount(FILE *readPtr);
 int getRecord(FILE *fPtr, unsigned int accountNum, struct clientData *client);
 int saveRecord(FILE *fPtr, unsigned int accountNum, const struct clientData *client);
+void logTransaction(const char *action, unsigned int acctNum, double amount);
 
 int main(int argc, char *argv[])
 {
@@ -164,6 +166,7 @@ void updateRecord(FILE *fPtr)
 
         // write updated record over old record in file
         saveRecord(fPtr, account, &client);
+        logTransaction(transaction > 0 ? "Deposit" : "Withdrawal", account, transaction);
     } // end else
 } // end function updateRecord
 
@@ -194,6 +197,7 @@ void deleteRecord(FILE *fPtr)
     { // delete record
         // replace existing record with blank record
         saveRecord(fPtr, accountNum, &blankClient);
+        logTransaction("Account Deleted", accountNum, 0);
     } // end else
 } // end function deleteRecord
 
@@ -233,6 +237,7 @@ void newRecord(FILE *fPtr)
         client.acctNum = accountNum;
         // insert record in file
         saveRecord(fPtr, accountNum, &client);
+        logTransaction("Account Created", accountNum, client.balance);
     } // end else
 } // end function newRecord
 
@@ -329,6 +334,9 @@ void transferFunds(FILE *fPtr)
     // write destination
     saveRecord(fPtr, destAccount, &destClient);
 
+    logTransaction("Transfer Out", srcAccount, amount);
+    logTransaction("Transfer In", destAccount, amount);
+
     printf("Successfully transferred %.2f from account %u to account %u.\n", amount, srcAccount, destAccount);
 }
 
@@ -372,6 +380,26 @@ int saveRecord(FILE *fPtr, unsigned int accountNum, const struct clientData *cli
 {
     fseek(fPtr, (accountNum - 1) * sizeof(struct clientData), SEEK_SET);
     return fwrite(client, sizeof(struct clientData), 1, fPtr);
+}
+
+// helper function to log transactions to a text file
+void logTransaction(const char *action, unsigned int acctNum, double amount)
+{
+    FILE *logPtr;
+    if ((logPtr = fopen("transactions.log", "a")) != NULL)
+    {
+        time_t t = time(NULL);
+        struct tm *tm_info = localtime(&t);
+        char timeBuffer[26];
+        strftime(timeBuffer, 26, "%Y-%m-%d %H:%M:%S", tm_info);
+
+        if (amount > 0.0 || amount < 0.0) {
+            fprintf(logPtr, "[%s] %s on Account %u: $%.2f\n", timeBuffer, action, acctNum, amount);
+        } else {
+            fprintf(logPtr, "[%s] %s on Account %u\n", timeBuffer, action, acctNum);
+        }
+        fclose(logPtr);
+    }
 }
 
 // search for an account by last name
